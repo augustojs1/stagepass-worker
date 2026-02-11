@@ -1,6 +1,6 @@
 export * from '@/infra/database/orm/drizzle/schemas/category.entity';
 export * from '@/infra/database/orm/drizzle/schemas/event-images.entity';
-export * from '@/infra/database/orm/drizzle/schemas/event-tickets-reservations.entity';
+export * from '@/modules/event-ticket-reservations/entities/event-tickets-reservations.entity';
 export * from '@/infra/database/orm/drizzle/schemas/event.entity';
 export * from '@/infra/database/orm/drizzle/schemas/event-tickets.entity';
 export * from '@/infra/database/orm/drizzle/schemas/order-item.entity';
