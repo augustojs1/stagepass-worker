@@ -7,6 +7,7 @@ import { DrizzleModule } from '@/infra/database/orm/drizzle/drizzle.module';
 import { HttpRequestInterceptor } from '@/infra/interceptors';
 import { EventTicketReservationsModule } from './modules/event-ticket-reservations/event-ticket-reservations.module';
 import { SchedulerModule } from './infra/jobs/scheduler.module';
+import { MessagesModule } from './infra/messages/messages.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { SchedulerModule } from './infra/jobs/scheduler.module';
     EventTicketReservationsModule,
     EventTicketReservationsModule,
     SchedulerModule,
+    MessagesModule,
   ],
   providers: [
     {

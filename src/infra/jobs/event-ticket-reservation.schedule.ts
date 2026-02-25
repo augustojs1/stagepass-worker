@@ -43,7 +43,7 @@ export class EventTicketReservationScheduler {
     }
   }
 
-  async expireReservationsBatch(limit: number) {
+  async expireReservationsBatch(limit: number): Promise<string[]> {
     return await this.drizzle.transaction(async (tx) => {
       const expiredOrders = await tx.execute<{ id: string }>(sql`
         SELECT id

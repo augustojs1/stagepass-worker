@@ -27,4 +27,10 @@ export const configuration = () => ({
     bucket: process.env.R2_BUCKET,
     public_url: process.env.R2_PUBLIC_URL,
   },
+  rmq: {
+    url: process.env.RMQ_URL,
+    queue_payment_failed: process.env.RMQ_QUEUE_PAYMENT_FAILED,
+    queue_payment_succes: process.env.RMQ_QUEUE_PAYMENT_SUCCESS,
+    queue_ticket_generate: process.env.RMQ_QUEUE_TICKET_GENERATE,
+  },
 });
