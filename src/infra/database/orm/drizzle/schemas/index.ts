@@ -8,3 +8,5 @@ export * from '@/infra/database/orm/drizzle/schemas/orders.entity';
 export * from '@/infra/database/orm/drizzle/schemas/users.entity';
 export * from '@/infra/database/orm/drizzle/schemas/users.entity';
 export * from '@/infra/database/orm/drizzle/schemas/countries.entity';
+export * from '@/modules/payment-orders/entities/payment-order.entity';
+export * from '@/infra/database/orm/drizzle/schemas/payment-gateway-webhook-events.entity';

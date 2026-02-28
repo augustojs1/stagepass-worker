@@ -22,7 +22,7 @@ export class PaymentOrdersRepository {
     return result[0] ?? null;
   }
 
-  async updateByOrderId(
+  async updateByProviderReferenceId(
     paymentOrderEntity: Partial<PaymentOrderEntity>,
   ): Promise<void> {
     await this.drizzle
@@ -30,6 +30,11 @@ export class PaymentOrdersRepository {
       .set({
         ...paymentOrderEntity,
       })
-      .where(eq(schema.payment_orders.order_id, paymentOrderEntity.order_id));
+      .where(
+        eq(
+          schema.payment_orders.provider_reference_id,
+          paymentOrderEntity.provider_reference_id,
+        ),
+      );
   }
 }

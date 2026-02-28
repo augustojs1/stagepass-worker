@@ -11,9 +11,11 @@ export class PaymentOrdersService {
     private readonly paymentOrdersRepository: PaymentOrdersRepository,
   ) {}
 
-  async update(data: Partial<PaymentOrderEntity>): Promise<void> {
+  async updateByProviderReferenceId(
+    data: Partial<PaymentOrderEntity>,
+  ): Promise<void> {
     try {
-      await this.paymentOrdersRepository.updateByOrderId(data);
+      await this.paymentOrdersRepository.updateByProviderReferenceId(data);
 
       this.logger.log(`Updated payment_order for order=${data.order_id}`);
     } catch (error) {
