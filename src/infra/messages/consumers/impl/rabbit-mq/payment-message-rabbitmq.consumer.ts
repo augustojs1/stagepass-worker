@@ -55,6 +55,22 @@ export class PaymentMessageRabbitMqConsumer implements IPaymentEventsConsumer {
         ...payload,
       });
 
+      await this.drizzle.transaction(async (trx) => {
+        await this.orderRepository.updateByProviderReferenceIdTrx(trx, {
+          id: payload.order_id,
+          status: 'FAILED',
+        });
+
+        await this.paymentGatewayWebhookEventsRepository.updateByProviderReferenceIdTrx(
+          trx,
+          {
+            process: 'PROCESSED',
+            provider_reference_id: payload.provider_reference_id,
+            receipt_url: null,
+          },
+        );
+      });
+
       channel.ack(originalMessage);
     } catch (error) {
       const e = error as Error;
@@ -74,6 +90,11 @@ export class PaymentMessageRabbitMqConsumer implements IPaymentEventsConsumer {
     try {
       const channel = ctx.getChannelRef();
       const originalMessage = ctx.getMessage();
+
+      this.logger.log(
+        `Receveid message on queue ${MessageQueues.PAYMENT_SUCESS}`,
+        payload,
+      );
 
       await this.drizzle.transaction(async (trx) => {
         await this.paymentOrderRepository.updateByProviderReferenceIdTrx(trx, {
