@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Ctx, EventPattern, Payload, RmqContext } from '@nestjs/microservices';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import { and, eq, inArray } from 'drizzle-orm';
+import { inArray } from 'drizzle-orm';
 
 import * as schemas from '@/infra/database/orm/drizzle/schemas';
 import { MessageQueues } from '../../enums';
@@ -15,6 +15,11 @@ import { PaymentFailedPayload } from '../../models';
 import { PaymentOrdersService } from '@/modules/payment-orders/payment-orders.service';
 import { SuccessPaymentEventPayload } from '../../models/success-payment-event-payload.model';
 import { DATABASE_TAG } from '@/infra/database/orm/drizzle/drizzle.module';
+import { PaymentOrdersRepository } from '@/modules/payment-orders/payment-orders.repository';
+import { OrdersRepository } from '@/modules/orders/orders.repository';
+import { EventTicketReservationsRepository } from '@/modules/event-ticket-reservations/event-ticket-reservations.repository';
+import { EventTicketsRepository } from '@/modules/event-tickets/event-tickets.repository';
+import { PaymentGatewayWebhookEventsRepository } from '@/infra/payment-gateway/payment-gateway-webhook-events.repository';
 
 @Controller()
 export class PaymentMessageRabbitMqConsumer implements IPaymentEventsConsumer {
@@ -24,6 +29,11 @@ export class PaymentMessageRabbitMqConsumer implements IPaymentEventsConsumer {
     @Inject(DATABASE_TAG)
     private readonly drizzle: PostgresJsDatabase<typeof schemas>,
     private readonly paymentOrderService: PaymentOrdersService,
+    private readonly paymentOrderRepository: PaymentOrdersRepository,
+    private readonly orderRepository: OrdersRepository,
+    private readonly eventTicketReservationRepository: EventTicketReservationsRepository,
+    private readonly eventTicketsRepository: EventTicketsRepository,
+    private readonly paymentGatewayWebhookEventsRepository: PaymentGatewayWebhookEventsRepository,
   ) {}
 
   @EventPattern(MessageQueues.PAYMENT_FAILED)
@@ -66,49 +76,26 @@ export class PaymentMessageRabbitMqConsumer implements IPaymentEventsConsumer {
       const originalMessage = ctx.getMessage();
 
       await this.drizzle.transaction(async (trx) => {
-        await trx
-          .update(schemas.payment_orders)
-          .set({
-            status: 'SUCCEEDED',
-            receipt_url: payload.receipt_url,
-          })
-          .where(
-            eq(
-              schemas.payment_orders.provider_reference_id,
-              payload.provider_reference_id,
-            ),
-          );
+        await this.paymentOrderRepository.updateByProviderReferenceIdTrx(trx, {
+          provider_reference_id: payload.provider_reference_id,
+          receipt_url: payload.receipt_url,
+        });
 
-        await trx
-          .update(schemas.orders)
-          .set({
-            status: 'PAID',
-          })
-          .where(eq(schemas.orders.id, payload.order_id));
+        await this.orderRepository.updateByProviderReferenceIdTrx(trx, {
+          id: payload.order_id,
+          status: 'PAID',
+        });
 
-        await trx
-          .update(schemas.event_ticket_reservations)
-          .set({
+        await this.eventTicketReservationRepository.updateActiveReservationsByOrderIdTrx(
+          trx,
+          {
+            order_id: payload.order_id,
             active: false,
-          })
-          .where(
-            and(
-              eq(schemas.event_ticket_reservations.order_id, payload.order_id),
-              eq(schemas.event_ticket_reservations.active, false),
-            ),
-          );
+          },
+        );
 
-        const eventTicketsOrder = await trx
-          .select({
-            ticket_id: schemas.event_tickets.id,
-            ticket_amount: schemas.event_tickets.amount,
-          })
-          .from(schemas.order_item)
-          .innerJoin(
-            schemas.event_tickets,
-            eq(schemas.event_tickets.id, schemas.order_item.event_ticket_id),
-          )
-          .where(eq(schemas.order_item.order_id, payload.order_id));
+        const eventTicketsOrder =
+          await this.orderRepository.getTicketsByOrderId(trx, payload.order_id);
 
         const eventTicketAmmountToBuy = new Map<string, number>();
 
@@ -143,28 +130,20 @@ export class PaymentMessageRabbitMqConsumer implements IPaymentEventsConsumer {
           const updatedAmmount =
             ticket.amount - eventTicketAmmountToBuy.get(ticket.id);
 
-          await trx
-            .update(schemas.event_tickets)
-            .set({
-              amount: updatedAmmount,
-              sold: updatedAmmount === 0 ? true : false,
-            })
-            .where(eq(schemas.event_tickets.id, ticket.id));
-
-          await trx
-            .update(schemas.payment_gateway_webhook_events)
-            .set({
-              process: 'PROCESSED',
-              provider_reference_id: payload.provider_reference_id,
-              receipt_url: payload.receipt_url,
-            })
-            .where(
-              eq(
-                schemas.payment_gateway_webhook_events.provider_reference_id,
-                payload.provider_reference_id,
-              ),
-            );
+          await this.eventTicketsRepository.updateTrx(trx, {
+            id: ticket.id,
+            amount: updatedAmmount,
+          });
         }
+
+        await this.paymentGatewayWebhookEventsRepository.updateByProviderReferenceIdTrx(
+          trx,
+          {
+            process: 'PROCESSED',
+            provider_reference_id: payload.provider_reference_id,
+            receipt_url: payload.receipt_url,
+          },
+        );
 
         // Gerar tickets
         // etc.

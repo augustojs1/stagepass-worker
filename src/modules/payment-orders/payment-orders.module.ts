@@ -5,6 +5,6 @@ import { PaymentOrdersRepository } from './payment-orders.repository';
 
 @Module({
   providers: [PaymentOrdersService, PaymentOrdersRepository],
-  exports: [PaymentOrdersService],
+  exports: [PaymentOrdersService, PaymentOrdersRepository],
 })
 export class PaymentOrdersModule {}

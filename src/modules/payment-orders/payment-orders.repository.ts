@@ -1,10 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import { eq } from 'drizzle-orm';
+import {
+  PostgresJsDatabase,
+  PostgresJsQueryResultHKT,
+} from 'drizzle-orm/postgres-js';
+import { eq, ExtractTablesWithRelations } from 'drizzle-orm';
 
 import * as schema from '@/modules/payment-orders/entities';
 import { DATABASE_TAG } from '@/infra/database/orm/drizzle/drizzle.module';
 import { PaymentOrderEntity } from './models/payment-order-entity.model';
+import { PgTransaction } from 'drizzle-orm/pg-core';
 
 @Injectable()
 export class PaymentOrdersRepository {
@@ -26,6 +30,27 @@ export class PaymentOrdersRepository {
     paymentOrderEntity: Partial<PaymentOrderEntity>,
   ): Promise<void> {
     await this.drizzle
+      .update(schema.payment_orders)
+      .set({
+        ...paymentOrderEntity,
+      })
+      .where(
+        eq(
+          schema.payment_orders.provider_reference_id,
+          paymentOrderEntity.provider_reference_id,
+        ),
+      );
+  }
+
+  async updateByProviderReferenceIdTrx(
+    trx: PgTransaction<
+      PostgresJsQueryResultHKT,
+      typeof schema,
+      ExtractTablesWithRelations<typeof schema>
+    >,
+    paymentOrderEntity: Partial<PaymentOrderEntity>,
+  ): Promise<void> {
+    await trx
       .update(schema.payment_orders)
       .set({
         ...paymentOrderEntity,
