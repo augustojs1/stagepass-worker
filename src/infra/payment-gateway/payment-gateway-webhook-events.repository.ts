@@ -42,8 +42,7 @@ export class PaymentGatewayWebhookEventsRepository {
     await trx
       .update(schema.payment_gateway_webhook_events)
       .set({
-        process: 'PROCESSED',
-        provider_reference_id: paymentGatewayWebhookEvent.provider_reference_id,
+        process: paymentGatewayWebhookEvent.process,
         receipt_url: paymentGatewayWebhookEvent.receipt_url,
       })
       .where(

@@ -12,7 +12,6 @@ import * as schemas from '@/infra/database/orm/drizzle/schemas';
 import { MessageQueues } from '../../enums';
 import { IPaymentEventsConsumer } from '../../payment/interfaces/ipayments-events.consumer';
 import { PaymentFailedPayload } from '../../models';
-import { PaymentOrdersService } from '@/modules/payment-orders/payment-orders.service';
 import { SuccessPaymentEventPayload } from '../../models/success-payment-event-payload.model';
 import { DATABASE_TAG } from '@/infra/database/orm/drizzle/drizzle.module';
 import { PaymentOrdersRepository } from '@/modules/payment-orders/payment-orders.repository';
@@ -28,7 +27,6 @@ export class PaymentMessageRabbitMqConsumer implements IPaymentEventsConsumer {
   constructor(
     @Inject(DATABASE_TAG)
     private readonly drizzle: PostgresJsDatabase<typeof schemas>,
-    private readonly paymentOrderService: PaymentOrdersService,
     private readonly paymentOrderRepository: PaymentOrdersRepository,
     private readonly orderRepository: OrdersRepository,
     private readonly eventTicketReservationRepository: EventTicketReservationsRepository,
@@ -50,15 +48,12 @@ export class PaymentMessageRabbitMqConsumer implements IPaymentEventsConsumer {
         payload,
       );
 
-      await this.paymentOrderService.updateByProviderReferenceId({
-        status: 'FAILED',
-        ...payload,
-      });
-
       await this.drizzle.transaction(async (trx) => {
-        await this.orderRepository.updateByProviderReferenceIdTrx(trx, {
-          id: payload.order_id,
+        await this.paymentOrderRepository.updateByProviderReferenceIdTrx(trx, {
+          provider_reference_id: payload.provider_reference_id,
           status: 'FAILED',
+          error_code: payload.error_code,
+          error_message: payload.error_message,
         });
 
         await this.paymentGatewayWebhookEventsRepository.updateByProviderReferenceIdTrx(
@@ -67,9 +62,17 @@ export class PaymentMessageRabbitMqConsumer implements IPaymentEventsConsumer {
             process: 'PROCESSED',
             provider_reference_id: payload.provider_reference_id,
             receipt_url: null,
+            error_code: payload.error_code,
+            error_message: payload.error_message,
+            error_decline_code: payload.error_decline_code,
           },
         );
       });
+
+      this.logger.log(
+        `Successfully processed message on queue ${MessageQueues.PAYMENT_FAILED} for order_id=${payload.order_id}, provider_reference_id=${payload.provider_reference_id}`,
+        payload,
+      );
 
       channel.ack(originalMessage);
     } catch (error) {
@@ -100,6 +103,7 @@ export class PaymentMessageRabbitMqConsumer implements IPaymentEventsConsumer {
         await this.paymentOrderRepository.updateByProviderReferenceIdTrx(trx, {
           provider_reference_id: payload.provider_reference_id,
           receipt_url: payload.receipt_url,
+          status: 'SUCCEEDED',
         });
 
         await this.orderRepository.updateByProviderReferenceIdTrx(trx, {
@@ -165,9 +169,6 @@ export class PaymentMessageRabbitMqConsumer implements IPaymentEventsConsumer {
             receipt_url: payload.receipt_url,
           },
         );
-
-        // Gerar tickets
-        // etc.
       });
 
       channel.ack(originalMessage);
