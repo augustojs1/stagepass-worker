@@ -6,6 +6,7 @@ import { OrdersModule } from '@/modules/orders/orders.module';
 import { EventTicketReservationsModule } from '@/modules/event-ticket-reservations/event-ticket-reservations.module';
 import { EventTicketsModule } from '@/modules/event-tickets/event-tickets.module';
 import { PaymentGatewayModule } from '../payment-gateway/payment-gateway.module';
+import { TicketsModule } from '@/modules/tickets/tickets.module';
 
 @Module({
   controllers: [PaymentMessageRabbitMqConsumer],
@@ -16,6 +17,7 @@ import { PaymentGatewayModule } from '../payment-gateway/payment-gateway.module'
     EventTicketReservationsModule,
     EventTicketsModule,
     PaymentGatewayModule,
+    TicketsModule,
   ],
 })
 export class MessagesModule {}

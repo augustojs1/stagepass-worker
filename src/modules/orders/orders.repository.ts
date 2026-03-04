@@ -9,6 +9,7 @@ import { PgTransaction } from 'drizzle-orm/pg-core';
 import * as schema from '@/infra/database/orm/drizzle/schemas';
 import { DATABASE_TAG } from '@/infra/database/orm/drizzle/drizzle.module';
 import { OrdersEntity } from '@/modules/orders/models/orders-entity.model';
+import { TicketData } from '../tickets/models';
 
 @Injectable()
 export class OrdersRepository {
@@ -78,5 +79,47 @@ export class OrdersRepository {
       .where(eq(schema.order_item.order_id, order_id));
 
     return result;
+  }
+
+  async findById(order_id: string): Promise<OrdersEntity | null> {
+    const result = await this.drizzle
+      .select()
+      .from(schema.orders)
+      .where(eq(schema.orders.id, order_id));
+
+    return result[0] ?? null;
+  }
+
+  async findOrderAndOrderItemAndEventById(
+    id: string,
+  ): Promise<TicketData | null> {
+    const result = await this.drizzle
+      .select({
+        name: schema.events.name,
+        owner_id: schema.orders.user_id,
+        order_id: schema.orders.id,
+        event_ticket_id: schema.event_tickets.id,
+        starts_at: schema.events.starts_at,
+        address_number: schema.events.address_number,
+        address_district: schema.events.address_district,
+        address_street: schema.events.address_street,
+        address_city: schema.events.address_city,
+        owner_name: schema.order_item.owner_name,
+        owner_email: schema.order_item.owner_email,
+        unit_price: schema.order_item.unit_price,
+      })
+      .from(schema.order_item)
+      .innerJoin(
+        schema.event_tickets,
+        eq(schema.event_tickets.id, schema.order_item.event_ticket_id),
+      )
+      .innerJoin(
+        schema.events,
+        eq(schema.events.id, schema.event_tickets.event_id),
+      )
+      .innerJoin(schema.orders, eq(schema.orders.id, id))
+      .where(eq(schema.order_item.order_id, id));
+
+    return result[0] ?? null;
   }
 }

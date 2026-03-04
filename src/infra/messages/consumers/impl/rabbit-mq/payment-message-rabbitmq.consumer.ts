@@ -19,6 +19,7 @@ import { OrdersRepository } from '@/modules/orders/orders.repository';
 import { EventTicketReservationsRepository } from '@/modules/event-ticket-reservations/event-ticket-reservations.repository';
 import { EventTicketsRepository } from '@/modules/event-tickets/event-tickets.repository';
 import { PaymentGatewayWebhookEventsRepository } from '@/infra/payment-gateway/payment-gateway-webhook-events.repository';
+import { TicketsService } from '@/modules/tickets/tickets.service';
 
 @Controller()
 export class PaymentMessageRabbitMqConsumer implements IPaymentEventsConsumer {
@@ -32,6 +33,7 @@ export class PaymentMessageRabbitMqConsumer implements IPaymentEventsConsumer {
     private readonly eventTicketReservationRepository: EventTicketReservationsRepository,
     private readonly eventTicketsRepository: EventTicketsRepository,
     private readonly paymentGatewayWebhookEventsRepository: PaymentGatewayWebhookEventsRepository,
+    private readonly ticketsService: TicketsService,
   ) {}
 
   @EventPattern(MessageQueues.PAYMENT_FAILED)
@@ -170,6 +172,8 @@ export class PaymentMessageRabbitMqConsumer implements IPaymentEventsConsumer {
           },
         );
       });
+
+      await this.ticketsService.handleGenerate(payload.order_id);
 
       channel.ack(originalMessage);
 

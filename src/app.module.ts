@@ -8,6 +8,7 @@ import { HttpRequestInterceptor } from '@/infra/interceptors';
 import { EventTicketReservationsModule } from './modules/event-ticket-reservations/event-ticket-reservations.module';
 import { SchedulerModule } from './infra/jobs/scheduler.module';
 import { MessagesModule } from './infra/messages/messages.module';
+import { TicketsModule } from './modules/tickets/tickets.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { MessagesModule } from './infra/messages/messages.module';
     DrizzleModule,
     EventTicketReservationsModule,
     EventTicketReservationsModule,
+    TicketsModule,
     SchedulerModule,
     MessagesModule,
   ],
