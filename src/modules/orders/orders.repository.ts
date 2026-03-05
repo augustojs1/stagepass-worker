@@ -90,9 +90,7 @@ export class OrdersRepository {
     return result[0] ?? null;
   }
 
-  async findOrderAndOrderItemAndEventById(
-    id: string,
-  ): Promise<TicketData | null> {
+  async findOrderAndOrderItemAndEventById(id: string): Promise<TicketData[]> {
     const result = await this.drizzle
       .select({
         name: schema.events.name,
@@ -120,6 +118,6 @@ export class OrdersRepository {
       .innerJoin(schema.orders, eq(schema.orders.id, id))
       .where(eq(schema.order_item.order_id, id));
 
-    return result[0] ?? null;
+    return result;
   }
 }

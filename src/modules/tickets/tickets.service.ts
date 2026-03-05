@@ -1,9 +1,16 @@
 import { randomUUID } from 'node:crypto';
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 import { TicketsRepository } from './tickets.repository';
 import { OrdersRepository } from '../orders/orders.repository';
-import { TicketPdfGeneratorProvider } from './providers';
+import {
+  TicketPdfGeneratorProvider,
+  TicketStoragePathFactory,
+} from './providers';
+import { R2StorageService } from '@/infra/storage';
+import { HTTP_UPLOADER } from '@/infra/http/http.module';
+import { HttpClientService } from '@/infra/http/http-client.service';
 
 @Injectable()
 export class TicketsService {
@@ -13,6 +20,11 @@ export class TicketsService {
     private readonly ticketsRepository: TicketsRepository,
     private readonly ordersRepository: OrdersRepository,
     private readonly ticketPdfGeneratorProvider: TicketPdfGeneratorProvider,
+    private readonly r2StorageService: R2StorageService,
+    private readonly ticketStoragePathFactory: TicketStoragePathFactory,
+    private readonly configService: ConfigService,
+    @Inject(HTTP_UPLOADER)
+    private readonly httpClientService: HttpClientService,
   ) {}
 
   async handleGenerate(order_id: string): Promise<void> {
@@ -20,38 +32,112 @@ export class TicketsService {
       const order = await this.ordersRepository.findById(order_id);
 
       if (!order) {
+        this.logger.log(`Order order_id=${order_id} not found!`);
         return;
       }
 
       if (order.status !== 'PAID') {
+        this.logger.log(`Order order_id=${order_id} is already paid!`);
         return;
       }
 
-      const ticketData =
+      const ticketsToGenerate =
         await this.ordersRepository.findOrderAndOrderItemAndEventById(order_id);
 
-      // create ticket row
-      const ticket = await this.ticketsRepository.create({
-        owner_id: ticketData.owner_id,
-        order_id: ticketData.order_id,
-        event_ticket_id: ticketData.event_ticket_id,
-        code: `STP_${randomUUID()}`,
-      });
+      for (const ticket of ticketsToGenerate) {
+        const ticketCode = `STP_${randomUUID()}`;
 
-      // Generate QR Code tickets with PDFKit
-      const pdfBuffer = await this.ticketPdfGeneratorProvider.generate({
-        ...ticketData,
-        code: ticket.code,
-      });
+        const createdTicket = await this.ticketsRepository.create({
+          owner_id: ticket.owner_id,
+          order_id: ticket.order_id,
+          event_ticket_id: ticket.event_ticket_id,
+          code: ticketCode,
+        });
 
-      this.ticketPdfGeneratorProvider.saveOnDisk(pdfBuffer, ticket.code);
+        this.logger.log(
+          `Successfully created ticket 
+          order_id=${createdTicket.order_id}, 
+          owner_id${createdTicket.owner_id}
+          code=${createdTicket.code}
+          `,
+        );
 
-      // Save PDF to R2
-      // Send tickets via email
+        const pdfBuffer = await this.ticketPdfGeneratorProvider.generate({
+          ...ticket,
+          code: ticket.code,
+        });
+
+        this.logger.log(
+          `Successfully generated PDF ticket 
+          order_id=${createdTicket.order_id}, 
+          owner_id${createdTicket.owner_id}
+          code=${createdTicket.code}
+          `,
+        );
+
+        const ticketKey = this.ticketStoragePathFactory.generateKey(ticketCode);
+
+        const response = await this.r2StorageService.createPresignedUploadUrl(
+          ticketKey,
+          2000,
+          'application/pdf',
+        );
+
+        await this.uploadPdfToPresignedUrl(response.uploadUrl, pdfBuffer);
+
+        const ticketPublicUrl = this.ticketStoragePathFactory.generateUrl({
+          order_id: createdTicket.order_id,
+          code: ticketCode,
+          owner_id: createdTicket.owner_id,
+          publicUrl: this.configService.get<string>('r2.public_url'),
+        });
+
+        await this.ticketsRepository.updateFileUrl(
+          createdTicket.id,
+          ticketPublicUrl,
+        );
+
+        this.logger.log(
+          `Successfully saved PDF file ticket URL 
+          order_id=${createdTicket.order_id}, 
+          owner_id${createdTicket.owner_id}
+          code=${createdTicket.code}
+          `,
+        );
+
+        // Send tickets via email
+      }
     } catch (error) {
       console.log('error.:', error);
 
-      this.logger.error('');
+      this.logger.error(
+        `An error has occured while trying to generate tickets for order ${order_id}`,
+        error,
+      );
+    }
+  }
+
+  async uploadPdfToPresignedUrl(
+    uploadUrl: string,
+    pdfBuffer: Buffer,
+  ): Promise<void> {
+    try {
+      await this.httpClientService.putBinary(uploadUrl, pdfBuffer, {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Length': pdfBuffer.length,
+        },
+        timeoutMs: 30_000,
+        responseType: 'text',
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
+        validateStatus: (s) => s >= 200 && s < 300,
+      });
+
+      this.logger.log(`Success to upload PDF ticket.`);
+    } catch (err: any) {
+      this.logger.error(`Failed to upload PDF ticket.`, err);
+      throw err;
     }
   }
 }

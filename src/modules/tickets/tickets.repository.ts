@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import { eq } from 'drizzle-orm';
 
 import { DATABASE_TAG } from '@/infra/database/orm/drizzle/drizzle.module';
 import * as schema from '@/infra/database/orm/drizzle/schemas';
@@ -22,5 +23,14 @@ export class TicketsRepository {
       .returning();
 
     return result[0];
+  }
+
+  async updateFileUrl(id: string, url: string): Promise<void> {
+    await this.drizzle
+      .update(schema.tickets)
+      .set({
+        file_url: url,
+      })
+      .where(eq(schema.tickets.id, id));
   }
 }
