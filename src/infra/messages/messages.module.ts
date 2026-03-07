@@ -4,9 +4,6 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 
 import { PaymentMessageRabbitMqConsumer } from './consumers/impl/rabbit-mq/payment-message-rabbitmq.consumer';
 import { PaymentOrdersModule } from '@/modules/payment-orders/payment-orders.module';
-import { OrdersModule } from '@/modules/orders/orders.module';
-import { EventTicketReservationsModule } from '@/modules/event-ticket-reservations/event-ticket-reservations.module';
-import { EventTicketsModule } from '@/modules/event-tickets/event-tickets.module';
 import { PaymentGatewayModule } from '../payment-gateway/payment-gateway.module';
 import { TicketsModule } from '@/modules/tickets/tickets.module';
 import { configuration } from '../config/configuration';
@@ -41,9 +38,6 @@ const env_variables = configuration();
       },
     ]),
     PaymentOrdersModule,
-    OrdersModule,
-    EventTicketReservationsModule,
-    EventTicketsModule,
     PaymentGatewayModule,
     TicketsModule,
   ],
