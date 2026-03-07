@@ -4,7 +4,8 @@ import { Transport } from '@nestjs/microservices';
 
 import { AppModule } from './app.module';
 import { AppExceptionFilter } from '@/infra/filters';
-import { configuration } from './infra/config/configuration';
+import { configuration } from '@/infra/config/configuration';
+import { initRabbitMqMessageBroker } from '@/infra/messages/brokers/rabbit-mq';
 
 async function bootstrap() {
   const PORT = process.env.PORT;
@@ -13,6 +14,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const env_variables = configuration();
+
+  await initRabbitMqMessageBroker(env_variables.rmq.url);
 
   const queues = [
     env_variables.rmq.queue_payment_succes,

@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 
-import { PaymentMessageRabbitMqConsumer } from './consumers/impl/rabbit-mq/payment-message-rabbitmq.consumer';
+import { PaymentMessageRabbitMqConsumer } from './consumers/payment/impl/rabbit-mq/payment-message-rabbitmq.consumer';
 import { PaymentOrdersModule } from '@/modules/payment-orders/payment-orders.module';
 import { PaymentGatewayModule } from '../payment-gateway/payment-gateway.module';
 import { TicketsModule } from '@/modules/tickets/tickets.module';
@@ -12,7 +12,8 @@ import { TicketsMessageRabbitMqProducer } from './producers/tickets/impl/tickets
 import { TicketsMessageRabbitMqConsumer } from './consumers/tickets/impl/rabbit-mq/tickets-message-rabbitmq.consumer';
 import { IEmailsMessageProducer } from './producers/emails/interfaces/iemails-message-producer.interface';
 import { EmailsMessageRabbitMqProducer } from './producers/emails/impl/emails-message-rabbitmq.producer';
-import { EmailsMessageRabbitMqConsumer } from './consumers/emails/rabbit-mq/emails-message-rabbitmq.consumer';
+import { EmailsMessageRabbitMqConsumer } from './consumers/emails/impl/rabbit-mq/emails-message-rabbitmq.consumer';
+import { RabbitMqProducerService } from './brokers/rabbit-mq/rabbit-mq-producer.service';
 
 const env_variables = configuration();
 
@@ -23,6 +24,7 @@ const env_variables = configuration();
     EmailsMessageRabbitMqConsumer,
   ],
   providers: [
+    RabbitMqProducerService,
     {
       provide: ITicketsMessageProducer,
       useClass: TicketsMessageRabbitMqProducer,

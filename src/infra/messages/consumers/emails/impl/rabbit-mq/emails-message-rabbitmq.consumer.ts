@@ -1,8 +1,8 @@
 import { Controller, Logger } from '@nestjs/common';
 import { Ctx, EventPattern, Payload, RmqContext } from '@nestjs/microservices';
 
-import { IEmailsEventsConsumer } from '../interfaces/iemails-events.consumer';
-import { MessageQueues } from '../../enums';
+import { IEmailsEventsConsumer } from '@/infra/messages/consumers/emails/interfaces/iemails-events.consumer';
+import { MessageQueues } from '@/infra/messages/consumers/enums';
 
 @Controller()
 export class EmailsMessageRabbitMqConsumer implements IEmailsEventsConsumer {
