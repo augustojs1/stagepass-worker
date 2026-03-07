@@ -20,7 +20,7 @@ export class RabbitMqProducerService implements OnModuleInit, OnModuleDestroy {
     this.connection = await amqp.connect(env_variables.rmq.url);
     this.channel = await this.connection.createChannel();
 
-    this.logger.log(`Init RabbitMqProducerService!`);
+    this.logger.log(`Init RabbitMqProducerService`);
   }
 
   async onModuleDestroy(): Promise<void> {
