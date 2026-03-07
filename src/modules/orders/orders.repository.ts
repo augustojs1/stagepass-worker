@@ -90,6 +90,22 @@ export class OrdersRepository {
     return result[0] ?? null;
   }
 
+  async findByIdTrx(
+    trx: PgTransaction<
+      PostgresJsQueryResultHKT,
+      typeof schema,
+      ExtractTablesWithRelations<typeof schema>
+    >,
+    order_id: string,
+  ): Promise<OrdersEntity | null> {
+    const result = await trx
+      .select()
+      .from(schema.orders)
+      .where(eq(schema.orders.id, order_id));
+
+    return result[0] ?? null;
+  }
+
   async findOrderAndOrderItemAndEventById(id: string): Promise<TicketData[]> {
     const result = await this.drizzle
       .select({

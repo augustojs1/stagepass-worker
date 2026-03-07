@@ -10,7 +10,7 @@ import { inArray } from 'drizzle-orm';
 
 import * as schemas from '@/infra/database/orm/drizzle/schemas';
 import { MessageQueues } from '../../enums';
-import { IPaymentEventsConsumer } from '../../payment/interfaces/ipayments-events.consumer';
+import { IPaymentEventsConsumer } from '../../payment/interfaces/ipayments-message.consumer';
 import { PaymentFailedPayload } from '../../models';
 import { SuccessPaymentEventPayload } from '../../models/success-payment-event-payload.model';
 import { DATABASE_TAG } from '@/infra/database/orm/drizzle/drizzle.module';
@@ -19,7 +19,7 @@ import { OrdersRepository } from '@/modules/orders/orders.repository';
 import { EventTicketReservationsRepository } from '@/modules/event-ticket-reservations/event-ticket-reservations.repository';
 import { EventTicketsRepository } from '@/modules/event-tickets/event-tickets.repository';
 import { PaymentGatewayWebhookEventsRepository } from '@/infra/payment-gateway/payment-gateway-webhook-events.repository';
-import { TicketsService } from '@/modules/tickets/tickets.service';
+import { ITicketsMessageProducer } from '@/infra/messages/producers/tickets/interfaces/message-producer.interface';
 
 @Controller()
 export class PaymentMessageRabbitMqConsumer implements IPaymentEventsConsumer {
@@ -33,7 +33,7 @@ export class PaymentMessageRabbitMqConsumer implements IPaymentEventsConsumer {
     private readonly eventTicketReservationRepository: EventTicketReservationsRepository,
     private readonly eventTicketsRepository: EventTicketsRepository,
     private readonly paymentGatewayWebhookEventsRepository: PaymentGatewayWebhookEventsRepository,
-    private readonly ticketsService: TicketsService,
+    private readonly ticketsMessageProducer: ITicketsMessageProducer,
   ) {}
 
   @EventPattern(MessageQueues.PAYMENT_FAILED)
@@ -102,6 +102,17 @@ export class PaymentMessageRabbitMqConsumer implements IPaymentEventsConsumer {
       );
 
       await this.drizzle.transaction(async (trx) => {
+        const order = await this.orderRepository.findByIdTrx(
+          trx,
+          payload.order_id,
+        );
+
+        if (order.status === 'PAID') {
+          channel.ack(originalMessage);
+          this.logger.log(`Order order=${payload.order_id} is already paid!`);
+          return;
+        }
+
         await this.paymentOrderRepository.updateByProviderReferenceIdTrx(trx, {
           provider_reference_id: payload.provider_reference_id,
           receipt_url: payload.receipt_url,
@@ -173,13 +184,13 @@ export class PaymentMessageRabbitMqConsumer implements IPaymentEventsConsumer {
         );
       });
 
-      await this.ticketsService.handleGenerate(payload.order_id);
-
       channel.ack(originalMessage);
 
       this.logger.log(
         `Successfuly processed payment for order_id=${payload.order_id}`,
       );
+
+      this.ticketsMessageProducer.emit(payload.order_id);
     } catch (error) {
       const e = error as Error;
 

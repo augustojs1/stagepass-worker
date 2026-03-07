@@ -17,14 +17,14 @@ export class TicketsService {
   private readonly logger = new Logger(TicketsService.name);
 
   constructor(
+    @Inject(HTTP_UPLOADER)
+    private readonly httpClientService: HttpClientService,
     private readonly ticketsRepository: TicketsRepository,
     private readonly ordersRepository: OrdersRepository,
     private readonly ticketPdfGeneratorProvider: TicketPdfGeneratorProvider,
     private readonly r2StorageService: R2StorageService,
     private readonly ticketStoragePathFactory: TicketStoragePathFactory,
     private readonly configService: ConfigService,
-    @Inject(HTTP_UPLOADER)
-    private readonly httpClientService: HttpClientService,
   ) {}
 
   async handleGenerate(order_id: string): Promise<void> {
@@ -37,7 +37,7 @@ export class TicketsService {
       }
 
       if (order.status !== 'PAID') {
-        this.logger.log(`Order order_id=${order_id} is already paid!`);
+        this.logger.log(`Order order_id=${order_id} is not paid!`);
         return;
       }
 
@@ -64,7 +64,7 @@ export class TicketsService {
 
         const pdfBuffer = await this.ticketPdfGeneratorProvider.generate({
           ...ticket,
-          code: ticket.code,
+          code: createdTicket.code,
         });
 
         this.logger.log(
@@ -108,12 +108,11 @@ export class TicketsService {
         // Send tickets via email
       }
     } catch (error) {
-      console.log('error.:', error);
-
       this.logger.error(
         `An error has occured while trying to generate tickets for order ${order_id}`,
         error,
       );
+      throw error;
     }
   }
 

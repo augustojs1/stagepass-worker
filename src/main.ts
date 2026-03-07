@@ -17,6 +17,7 @@ async function bootstrap() {
   const queues = [
     env_variables.rmq.queue_payment_succes,
     env_variables.rmq.queue_payment_failed,
+    env_variables.rmq.queue_ticket_generate,
   ];
 
   for (const queue of queues) {
