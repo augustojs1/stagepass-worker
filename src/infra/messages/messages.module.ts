@@ -10,15 +10,26 @@ import { configuration } from '../config/configuration';
 import { ITicketsMessageProducer } from './producers/tickets/interfaces/message-producer.interface';
 import { TicketsMessageRabbitMqProducer } from './producers/tickets/impl/tickets-message-rabbitmq.producer';
 import { TicketsMessageRabbitMqConsumer } from './consumers/tickets/impl/rabbit-mq/tickets-message-rabbitmq.consumer';
+import { IEmailsMessageProducer } from './producers/emails/interfaces/iemails-message-producer.interface';
+import { EmailsMessageRabbitMqProducer } from './producers/emails/impl/emails-message-rabbitmq.producer';
+import { EmailsMessageRabbitMqConsumer } from './consumers/emails/rabbit-mq/emails-message-rabbitmq.consumer';
 
 const env_variables = configuration();
 
 @Module({
-  controllers: [PaymentMessageRabbitMqConsumer, TicketsMessageRabbitMqConsumer],
+  controllers: [
+    PaymentMessageRabbitMqConsumer,
+    TicketsMessageRabbitMqConsumer,
+    EmailsMessageRabbitMqConsumer,
+  ],
   providers: [
     {
       provide: ITicketsMessageProducer,
       useClass: TicketsMessageRabbitMqProducer,
+    },
+    {
+      provide: IEmailsMessageProducer,
+      useClass: EmailsMessageRabbitMqProducer,
     },
   ],
   imports: [
@@ -30,6 +41,18 @@ const env_variables = configuration();
         options: {
           urls: [env_variables.rmq.url],
           queue: env_variables.rmq.queue_ticket_generate,
+          queueOptions: {
+            durable: true,
+          },
+          prefetchCount: 10,
+        },
+      },
+      {
+        name: 'email_queue',
+        transport: Transport.RMQ,
+        options: {
+          urls: [env_variables.rmq.url],
+          queue: env_variables.rmq.queue_email_send,
           queueOptions: {
             durable: true,
           },

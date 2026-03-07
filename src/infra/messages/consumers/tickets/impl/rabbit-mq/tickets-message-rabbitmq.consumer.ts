@@ -1,15 +1,19 @@
 import { Controller, Logger } from '@nestjs/common';
 import { Ctx, EventPattern, Payload, RmqContext } from '@nestjs/microservices';
 
-import { ITicketsEventsConsumer } from '../../interfaces/itickets-events.consumer';
 import { TicketsService } from '@/modules/tickets/tickets.service';
 import { MessageQueues } from '../../../enums';
+import { IEmailsMessageProducer } from '@/infra/messages/producers/emails/interfaces/iemails-message-producer.interface';
+import { IEmailsEventsConsumer } from '../../../emails/interfaces/iemails-events.consumer';
 
 @Controller()
-export class TicketsMessageRabbitMqConsumer implements ITicketsEventsConsumer {
+export class TicketsMessageRabbitMqConsumer implements IEmailsEventsConsumer {
   private readonly logger = new Logger(TicketsMessageRabbitMqConsumer.name);
 
-  constructor(private readonly ticketsService: TicketsService) {}
+  constructor(
+    private readonly emailsMessageProducer: IEmailsMessageProducer,
+    private readonly ticketsService: TicketsService,
+  ) {}
 
   @EventPattern(MessageQueues.TICKET_GENERATE)
   async handle(
@@ -33,6 +37,8 @@ export class TicketsMessageRabbitMqConsumer implements ITicketsEventsConsumer {
       );
 
       channel.ack(originalMessage);
+
+      this.emailsMessageProducer.emit();
     } catch (error) {
       const e = error as Error;
 

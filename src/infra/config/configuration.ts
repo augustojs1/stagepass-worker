@@ -32,5 +32,6 @@ export const configuration = () => ({
     queue_payment_failed: process.env.RMQ_QUEUE_PAYMENT_FAILED,
     queue_payment_succes: process.env.RMQ_QUEUE_PAYMENT_SUCCESS,
     queue_ticket_generate: process.env.RMQ_QUEUE_TICKET_GENERATE,
+    queue_email_send: process.env.RMQ_QUEUE_EMAIL_SEND,
   },
 });
