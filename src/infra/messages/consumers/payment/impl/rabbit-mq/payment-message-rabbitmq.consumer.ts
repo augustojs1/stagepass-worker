@@ -17,7 +17,6 @@ export class PaymentMessageRabbitMqConsumer implements IPaymentEventsConsumer {
   private readonly MAX_RETRIES = 3;
 
   constructor(
-    @Inject(DATABASE_TAG)
     private readonly paymentOrderService: PaymentOrdersService,
     private readonly ticketsMessageProducer: ITicketsMessageProducer,
     private readonly rabbitMqProducerService: RabbitMqProducerService,

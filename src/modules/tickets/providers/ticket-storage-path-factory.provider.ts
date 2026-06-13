@@ -7,10 +7,16 @@ type GenerateUrlParams = {
   code: string;
 };
 
+type GenerateKeyParams = {
+  owner_id: string;
+  order_id: string;
+  code: string;
+};
+
 @Injectable()
 export class TicketStoragePathFactory {
-  generateKey(code: string): string {
-    return `${code}.pdf`;
+  generateKey(params: GenerateKeyParams): string {
+    return `user_${params.owner_id}/tickets/order_${params.order_id}/${params.code}.pdf`;
   }
 
   generateUrl(params: GenerateUrlParams): string {

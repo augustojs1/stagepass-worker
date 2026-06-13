@@ -75,7 +75,11 @@ export class TicketsService {
           `,
         );
 
-        const ticketKey = this.ticketStoragePathFactory.generateKey(ticketCode);
+        const ticketKey = this.ticketStoragePathFactory.generateKey({
+          order_id: createdTicket.order_id,
+          code: ticketCode,
+          owner_id: createdTicket.owner_id,
+        });
 
         const response = await this.r2StorageService.createPresignedUploadUrl(
           ticketKey,
