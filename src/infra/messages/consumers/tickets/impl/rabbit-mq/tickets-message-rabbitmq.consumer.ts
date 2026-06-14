@@ -3,7 +3,6 @@ import { Ctx, EventPattern, Payload, RmqContext } from '@nestjs/microservices';
 
 import { TicketsService } from '@/modules/tickets/tickets.service';
 import { MessageExchanges, MessageQueues } from '../../../enums';
-import { IEmailsMessageProducer } from '@/infra/messages/producers/emails/interfaces/iemails-message-producer.interface';
 import { IEmailsEventsConsumer } from '../../../emails/interfaces/iemails-events.consumer';
 import { RabbitMqProducerService } from '@/infra/messages/brokers/rabbit-mq';
 
@@ -14,7 +13,6 @@ export class TicketsMessageRabbitMqConsumer implements IEmailsEventsConsumer {
   private readonly MAX_RETRIES = 3;
 
   constructor(
-    private readonly emailsMessageProducer: IEmailsMessageProducer,
     private readonly ticketsService: TicketsService,
     private readonly rabbitMqProducerService: RabbitMqProducerService,
   ) {}
@@ -44,8 +42,6 @@ export class TicketsMessageRabbitMqConsumer implements IEmailsEventsConsumer {
       );
 
       channel.ack(originalMessage);
-
-      this.emailsMessageProducer.emit();
     } catch (error) {
       const e = error as Error;
 

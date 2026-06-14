@@ -1,3 +1,3 @@
 export abstract class IEmailsMessageProducer {
-  abstract emit(): void;
+  abstract emit(payload: any): void;
 }

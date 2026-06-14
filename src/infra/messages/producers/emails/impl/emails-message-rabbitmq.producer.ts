@@ -13,8 +13,8 @@ export class EmailsMessageRabbitMqProducer implements IEmailsMessageProducer {
     private readonly rabbitMqClient: ClientProxy,
   ) {}
 
-  emit() {
-    this.rabbitMqClient.emit(MessageQueues.EMAIL, {});
+  emit(payload: { order_id: string; to: string }) {
+    this.rabbitMqClient.emit(MessageQueues.EMAIL, payload);
 
     this.logger.log(`Publish message on queue ${MessageQueues.EMAIL}.`);
   }

@@ -9,6 +9,7 @@ import { EventTicketReservationsModule } from './modules/event-ticket-reservatio
 import { SchedulerModule } from './infra/jobs/scheduler.module';
 import { MessagesModule } from './infra/messages/messages.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
+import { EmailsModule } from './infra/emails/emails.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { TicketsModule } from './modules/tickets/tickets.module';
     TicketsModule,
     SchedulerModule,
     MessagesModule,
+    EmailsModule,
   ],
   providers: [
     {

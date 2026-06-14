@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 
@@ -14,6 +14,7 @@ import { IEmailsMessageProducer } from './producers/emails/interfaces/iemails-me
 import { EmailsMessageRabbitMqProducer } from './producers/emails/impl/emails-message-rabbitmq.producer';
 import { EmailsMessageRabbitMqConsumer } from './consumers/emails/impl/rabbit-mq/emails-message-rabbitmq.consumer';
 import { RabbitMqProducerService } from './brokers/rabbit-mq/rabbit-mq-producer.service';
+import { EmailsModule } from '../emails/emails.module';
 
 const env_variables = configuration();
 
@@ -64,8 +65,9 @@ const env_variables = configuration();
     ]),
     PaymentOrdersModule,
     PaymentGatewayModule,
-    TicketsModule,
+    forwardRef(() => TicketsModule),
+    EmailsModule,
   ],
-  exports: [ITicketsMessageProducer],
+  exports: [ITicketsMessageProducer, IEmailsMessageProducer],
 })
 export class MessagesModule {}

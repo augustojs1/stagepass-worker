@@ -11,6 +11,8 @@ import {
 import { R2StorageService } from '@/infra/storage';
 import { HTTP_UPLOADER } from '@/infra/http/http.module';
 import { HttpClientService } from '@/infra/http/http-client.service';
+import { EmailsService } from '@/infra/emails/emails.service.interface';
+import { IEmailsMessageProducer } from '@/infra/messages/producers/emails/interfaces/iemails-message-producer.interface';
 
 @Injectable()
 export class TicketsService {
@@ -25,6 +27,8 @@ export class TicketsService {
     private readonly r2StorageService: R2StorageService,
     private readonly ticketStoragePathFactory: TicketStoragePathFactory,
     private readonly configService: ConfigService,
+    private readonly emailsMessageProducer: IEmailsMessageProducer,
+    private readonly emailsService: EmailsService,
   ) {}
 
   async handleGenerate(order_id: string): Promise<void> {
@@ -47,6 +51,7 @@ export class TicketsService {
       for (const ticket of ticketsToGenerate) {
         const ticketCode = `STP_${randomUUID()}`;
 
+        // TODO: Save order_item_id instead of order_id
         const createdTicket = await this.ticketsRepository.create({
           owner_id: ticket.owner_id,
           order_id: ticket.order_id,
@@ -108,14 +113,19 @@ export class TicketsService {
           code=${createdTicket.code}
           `,
         );
-
-        // Send tickets via email
       }
+
+      // TODO: Send email for ticket owners
+      await this.emailsMessageProducer.emit({
+        order_id: ticketsToGenerate[0].order_id,
+        to: ticketsToGenerate[0].owner_email,
+      });
     } catch (error) {
       this.logger.error(
         `An error has occured while trying to generate tickets for order ${order_id}`,
         error,
       );
+
       throw error;
     }
   }
@@ -141,6 +151,37 @@ export class TicketsService {
     } catch (err: any) {
       this.logger.error(`Failed to upload PDF ticket.`, err);
       throw err;
+    }
+  }
+
+  async handleSendTicketsViaEmail(
+    email: string,
+    order_id: string,
+  ): Promise<void> {
+    try {
+      const usersAndTickets =
+        await this.ticketsRepository.findTicketAndUserByOrderId(order_id);
+
+      await this.emailsService.sendEmail({
+        to: email,
+        subject: `Tickets for order #${order_id}`,
+        html: '<div> <p>Your tickets for order has arrived</p></div>',
+        attachments: usersAndTickets.map((ticket) => ({
+          filename: `${ticket.ticket_code}.pdf`,
+          path: ticket.ticket_file_url,
+        })),
+      });
+
+      this.logger.log(
+        `Successfully sent tickets for email=${email} ,order_id=${order_id}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `An error has occured while trying to send tickets via email: order_id=${order_id}`,
+        error,
+      );
+
+      throw error;
     }
   }
 }

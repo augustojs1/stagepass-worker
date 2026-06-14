@@ -7,6 +7,7 @@ import {
   MessageQueues,
 } from '@/infra/messages/consumers/enums';
 import { RabbitMqProducerService } from '@/infra/messages/brokers/rabbit-mq';
+import { TicketsService } from '@/modules/tickets/tickets.service';
 
 @Controller()
 export class EmailsMessageRabbitMqConsumer implements IEmailsEventsConsumer {
@@ -16,11 +17,12 @@ export class EmailsMessageRabbitMqConsumer implements IEmailsEventsConsumer {
 
   constructor(
     private readonly rabbitMqProducerService: RabbitMqProducerService,
+    private readonly ticketsService: TicketsService,
   ) {}
 
   @EventPattern(MessageQueues.EMAIL)
   async handle(
-    @Payload() payload: { order_id: string },
+    @Payload() payload: { order_id: string; to: string },
     @Ctx() ctx: RmqContext,
   ): Promise<void> {
     const channel = ctx.getChannelRef();
@@ -35,6 +37,11 @@ export class EmailsMessageRabbitMqConsumer implements IEmailsEventsConsumer {
     );
 
     try {
+      await this.ticketsService.handleSendTicketsViaEmail(
+        payload.to,
+        payload.order_id,
+      );
+
       channel.ack(originalMessage);
     } catch (error) {
       const e = error as Error;
