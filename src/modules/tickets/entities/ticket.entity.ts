@@ -10,16 +10,16 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import {
-  orders,
   users,
   event_tickets,
+  order_item,
 } from '@/infra/database/orm/drizzle/schemas';
 
 export const tickets = pgTable('tickets', {
   id: uuid()
     .primaryKey()
     .default(sql`gen_random_uuid`),
-  order_id: uuid().references((): AnyPgColumn => orders.id),
+  order_item_id: uuid().references((): AnyPgColumn => order_item.id),
   owner_id: uuid().references((): AnyPgColumn => users.id),
   event_ticket_id: uuid().references((): AnyPgColumn => event_tickets.id),
   file_url: text(),

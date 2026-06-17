@@ -26,7 +26,7 @@ export class TicketPdfGeneratorProvider {
 
     const address = this.formatAddress(ticketData);
 
-    doc.fontSize(24).text(ticketData.name, { align: 'center' });
+    doc.fontSize(24).text(ticketData.event_name, { align: 'center' });
 
     doc.moveDown(2);
 

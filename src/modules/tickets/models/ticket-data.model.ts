@@ -1,5 +1,5 @@
 export class TicketData {
-  name: string;
+  event_name: string;
   owner_id: string;
   order_id: string;
   event_ticket_id: string;
@@ -12,4 +12,6 @@ export class TicketData {
   owner_email: string;
   unit_price: number;
   code?: string;
+  order_owner_email: string;
+  order_item_id: string;
 }

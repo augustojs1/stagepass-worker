@@ -48,21 +48,23 @@ export class TicketsService {
       const ticketsToGenerate =
         await this.ordersRepository.findOrderAndOrderItemAndEventById(order_id);
 
+      const ownerEmail = ticketsToGenerate[0].owner_email;
+
       for (const ticket of ticketsToGenerate) {
         const ticketCode = `STP_${randomUUID()}`;
 
-        // TODO: Save order_item_id instead of order_id
         const createdTicket = await this.ticketsRepository.create({
           owner_id: ticket.owner_id,
-          order_id: ticket.order_id,
+          order_item_id: ticket.order_item_id,
           event_ticket_id: ticket.event_ticket_id,
           code: ticketCode,
         });
 
         this.logger.log(
           `Successfully created ticket 
-          order_id=${createdTicket.order_id}, 
-          owner_id${createdTicket.owner_id}
+          order_id=${order_id},
+          order_item_id=${createdTicket.order_item_id}, 
+          owner_id${createdTicket.owner_id},
           code=${createdTicket.code}
           `,
         );
@@ -74,14 +76,15 @@ export class TicketsService {
 
         this.logger.log(
           `Successfully generated PDF ticket 
-          order_id=${createdTicket.order_id}, 
-          owner_id${createdTicket.owner_id}
+          order_id=${order_id},
+          order_item_id=${createdTicket.order_item_id},
+          owner_id${createdTicket.owner_id},
           code=${createdTicket.code}
           `,
         );
 
         const ticketKey = this.ticketStoragePathFactory.generateKey({
-          order_id: createdTicket.order_id,
+          order_id: order_id,
           code: ticketCode,
           owner_id: createdTicket.owner_id,
         });
@@ -95,7 +98,7 @@ export class TicketsService {
         await this.uploadPdfToPresignedUrl(response.uploadUrl, pdfBuffer);
 
         const ticketPublicUrl = this.ticketStoragePathFactory.generateUrl({
-          order_id: createdTicket.order_id,
+          order_id: order_id,
           code: ticketCode,
           owner_id: createdTicket.owner_id,
           publicUrl: this.configService.get<string>('r2.public_url'),
@@ -108,17 +111,17 @@ export class TicketsService {
 
         this.logger.log(
           `Successfully saved PDF file ticket URL 
-          order_id=${createdTicket.order_id}, 
+          order_id=${order_id},
+          order_item_id=${createdTicket.order_item_id}, 
           owner_id${createdTicket.owner_id}
           code=${createdTicket.code}
           `,
         );
       }
 
-      // TODO: Send email for ticket owners
       await this.emailsMessageProducer.emit({
-        order_id: ticketsToGenerate[0].order_id,
-        to: ticketsToGenerate[0].owner_email,
+        order_id: order.id,
+        to: ownerEmail,
       });
     } catch (error) {
       this.logger.error(

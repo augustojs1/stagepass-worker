@@ -109,9 +109,11 @@ export class OrdersRepository {
   async findOrderAndOrderItemAndEventById(id: string): Promise<TicketData[]> {
     const result = await this.drizzle
       .select({
-        name: schema.events.name,
-        owner_id: schema.orders.user_id,
-        order_id: schema.orders.id,
+        event_name: schema.events.name,
+        owner_id: schema.users.id,
+        order_owner_email: schema.users.email,
+        order_id: schema.order_item.order_id,
+        order_item_id: schema.order_item.id,
         event_ticket_id: schema.event_tickets.id,
         starts_at: schema.events.starts_at,
         address_number: schema.events.address_number,
@@ -124,6 +126,11 @@ export class OrdersRepository {
       })
       .from(schema.order_item)
       .innerJoin(
+        schema.orders,
+        eq(schema.orders.id, schema.order_item.order_id),
+      )
+      .innerJoin(schema.users, eq(schema.users.id, schema.orders.user_id))
+      .innerJoin(
         schema.event_tickets,
         eq(schema.event_tickets.id, schema.order_item.event_ticket_id),
       )
@@ -131,7 +138,6 @@ export class OrdersRepository {
         schema.events,
         eq(schema.events.id, schema.event_tickets.event_id),
       )
-      .innerJoin(schema.orders, eq(schema.orders.id, id))
       .where(eq(schema.order_item.order_id, id));
 
     return result;

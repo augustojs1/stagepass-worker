@@ -35,19 +35,21 @@ export class TicketsRepository {
   }
 
   async findTicketAndUserByOrderId(order_id: string) {
-    const ticketWithUser = await this.drizzle
+    return this.drizzle
       .select({
         ticket_id: schema.tickets.id,
-        order_id: schema.tickets.order_id,
+        order_item_id: schema.tickets.order_item_id,
         user_email: schema.users.email,
         ticket_file_url: schema.tickets.file_url,
         ticket_code: schema.tickets.code,
       })
       .from(schema.tickets)
+      .innerJoin(
+        schema.order_item,
+        eq(schema.tickets.order_item_id, schema.order_item.id),
+      )
       .innerJoin(schema.users, eq(schema.tickets.owner_id, schema.users.id))
-      .where(eq(schema.tickets.order_id, order_id));
-
-    return ticketWithUser;
+      .where(eq(schema.order_item.order_id, order_id));
   }
 
   async findByOrderIdAndOwnerId(order_id: string, owner_id: string) {
@@ -56,7 +58,7 @@ export class TicketsRepository {
       .from(schema.tickets)
       .where(
         and(
-          eq(schema.tickets.order_id, order_id),
+          eq(schema.tickets.order_item_id, order_id),
           eq(schema.tickets.owner_id, owner_id),
         ),
       );
