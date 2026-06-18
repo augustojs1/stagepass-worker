@@ -3,12 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import { Transporter } from 'nodemailer';
 
-import { EmailsService } from '../emails.service.interface';
+import { SMTPService } from '../smtp.service.interface';
 import { SendEmailPayload } from '../models/send-email-payload.model';
 
 @Injectable()
-export class NodemailerEmailService implements EmailsService, OnModuleInit {
-  private readonly logger = new Logger(NodemailerEmailService.name);
+export class EtherealSMTPService implements SMTPService, OnModuleInit {
+  private readonly logger = new Logger(EtherealSMTPService.name);
   private transporter: Transporter;
 
   constructor(private readonly configService: ConfigService) {}
