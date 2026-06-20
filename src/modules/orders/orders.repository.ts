@@ -142,4 +142,16 @@ export class OrdersRepository {
 
     return result;
   }
+
+  async findOrderUserEmail(order_id: string): Promise<string | null> {
+    const result = await this.drizzle
+      .select({
+        email: schema.users.email,
+      })
+      .from(schema.orders)
+      .innerJoin(schema.users, eq(schema.orders.user_id, schema.users.id))
+      .where(eq(schema.orders.id, order_id));
+
+    return result[0].email ?? null;
+  }
 }

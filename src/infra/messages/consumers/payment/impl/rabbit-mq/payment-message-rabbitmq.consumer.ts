@@ -1,11 +1,10 @@
-import { Controller, Inject, Logger } from '@nestjs/common';
+import { Controller, Logger } from '@nestjs/common';
 import { Ctx, EventPattern, Payload, RmqContext } from '@nestjs/microservices';
 
 import { MessageExchanges, MessageQueues } from '../../../enums';
 import { IPaymentEventsConsumer } from '../../interfaces/ipayments-message.consumer';
 import { PaymentFailedPayload } from '../../../models';
 import { SuccessPaymentEventPayload } from '../../../models/success-payment-event-payload.model';
-import { DATABASE_TAG } from '@/infra/database/orm/drizzle/drizzle.module';
 import { ITicketsMessageProducer } from '@/infra/messages/producers/tickets/interfaces/message-producer.interface';
 import { PaymentOrdersService } from '@/modules/payment-orders/payment-orders.service';
 import { RabbitMqProducerService } from '@/infra/messages/brokers/rabbit-mq';

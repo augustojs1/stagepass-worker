@@ -3,6 +3,7 @@ import { ClientProxy } from '@nestjs/microservices';
 
 import { IEmailsMessageProducer } from '../interfaces/iemails-message-producer.interface';
 import { MessageQueues } from '@/infra/messages/consumers/enums';
+import { SendEmailMessageDto } from '@/modules/emails/dtos/send-email-message.dto';
 
 @Injectable()
 export class EmailsMessageRabbitMqProducer implements IEmailsMessageProducer {
@@ -13,7 +14,7 @@ export class EmailsMessageRabbitMqProducer implements IEmailsMessageProducer {
     private readonly rabbitMqClient: ClientProxy,
   ) {}
 
-  emit(payload: { order_id: string; to: string }) {
+  emit(payload: SendEmailMessageDto) {
     this.rabbitMqClient.emit(MessageQueues.EMAIL, payload);
 
     this.logger.log(`Publish message on queue ${MessageQueues.EMAIL}.`);

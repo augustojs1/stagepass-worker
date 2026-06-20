@@ -1,6 +1,7 @@
 import {
   Inject,
   Injectable,
+  InternalServerErrorException,
   Logger,
   UnprocessableEntityException,
 } from '@nestjs/common';
@@ -17,6 +18,8 @@ import { EventTicketReservationsRepository } from '../event-ticket-reservations/
 import { EventTicketsRepository } from '../event-tickets/event-tickets.repository';
 import { PaymentGatewayWebhookEventsRepository } from '@/infra/payment-gateway/payment-gateway-webhook-events.repository';
 import { PaymentFailedPayload } from '@/infra/messages/consumers/models';
+import { IEmailsMessageProducer } from '@/infra/messages/producers/emails/interfaces/iemails-message-producer.interface';
+import { EmailTemplateType } from '../emails/enums/email-template-type.enum';
 
 @Injectable()
 export class PaymentOrdersService {
@@ -30,6 +33,7 @@ export class PaymentOrdersService {
     private readonly eventTicketReservationRepository: EventTicketReservationsRepository,
     private readonly eventTicketsRepository: EventTicketsRepository,
     private readonly paymentGatewayWebhookEventsRepository: PaymentGatewayWebhookEventsRepository,
+    private readonly emailMessageProducer: IEmailsMessageProducer,
   ) {}
 
   async handleSuccessPaymentOrder(
@@ -117,6 +121,25 @@ export class PaymentOrdersService {
           },
         );
       });
+
+      const email = await this.orderRepository.findOrderUserEmail(
+        payload.order_id,
+      );
+
+      if (!email) {
+        this.logger.error(
+          `Order user email not found for order_id=${payload.order_id}`,
+        );
+        throw new InternalServerErrorException(
+          `Order user email not found for order_id=${payload.order_id}`,
+        );
+      }
+
+      this.emailMessageProducer.emit({
+        type: EmailTemplateType.PAYMENT_SUCCESS,
+        to: email,
+        order_id: payload.order_id,
+      });
     } catch (error) {
       const e = error as Error;
 
@@ -149,6 +172,25 @@ export class PaymentOrdersService {
             error_decline_code: payload.error_decline_code,
           },
         );
+      });
+
+      const email = await this.orderRepository.findOrderUserEmail(
+        payload.order_id,
+      );
+
+      if (!email) {
+        this.logger.error(
+          `Order user email not found for order_id=${payload.order_id}`,
+        );
+        throw new InternalServerErrorException(
+          `Order user email not found for order_id=${payload.order_id}`,
+        );
+      }
+
+      this.emailMessageProducer.emit({
+        type: EmailTemplateType.PAYMENT_FAILED,
+        to: email,
+        order_id: payload.order_id,
       });
     } catch (error) {
       const e = error as Error;
