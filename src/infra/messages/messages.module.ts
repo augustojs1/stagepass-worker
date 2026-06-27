@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 
@@ -66,7 +66,8 @@ const env_variables = configuration();
     PaymentOrdersModule,
     PaymentGatewayModule,
     EmailsModule,
-    TicketsModule,
+    forwardRef(() => PaymentOrdersModule),
+    forwardRef(() => TicketsModule),
   ],
   exports: [ITicketsMessageProducer, IEmailsMessageProducer],
 })

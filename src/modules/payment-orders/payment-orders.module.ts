@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 import { PaymentOrdersService } from './payment-orders.service';
 import { PaymentOrdersRepository } from './payment-orders.repository';
@@ -15,7 +15,7 @@ import { MessagesModule } from '@/infra/messages/messages.module';
     EventTicketReservationsModule,
     EventTicketsModule,
     PaymentGatewayModule,
-    MessagesModule,
+    forwardRef(() => MessagesModule),
   ],
   exports: [PaymentOrdersService],
 })
