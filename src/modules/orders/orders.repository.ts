@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { eq, ExtractTablesWithRelations } from 'drizzle-orm';
+import { count, eq, ExtractTablesWithRelations, sql } from 'drizzle-orm';
 import {
   PostgresJsDatabase,
   PostgresJsQueryResultHKT,
@@ -10,6 +10,7 @@ import * as schema from '@/infra/database/orm/drizzle/schemas';
 import { DATABASE_TAG } from '@/infra/database/orm/drizzle/drizzle.module';
 import { OrdersEntity } from '@/modules/orders/models/orders-entity.model';
 import { TicketData } from '../tickets/models';
+import { OrderEmailTemplateData } from '../emails/models';
 
 @Injectable()
 export class OrdersRepository {
@@ -153,5 +154,62 @@ export class OrdersRepository {
       .where(eq(schema.orders.id, order_id));
 
     return result[0].email ?? null;
+  }
+
+  async findOrderEmailTemplateDataById(
+    order_id: string,
+  ): Promise<OrderEmailTemplateData | null> {
+    const result = await this.drizzle
+      .select({
+        customer_name: schema.users.first_name,
+        order_id: schema.orders.id,
+        tickets_count: count(schema.order_item.id),
+        order_total: schema.orders.total_price,
+        event_name: schema.events.name,
+        event_date: schema.events.starts_at,
+        event_location: sql<string>`
+        concat(
+          ${schema.events.address_street}, ', ',
+          ${schema.events.address_number}, ', ',
+          ${schema.events.address_district}, ' - ',
+          ${schema.events.address_city}
+        )
+      `,
+        receipt_url: schema.payment_orders.receipt_url,
+        checkout_url: schema.payment_orders.checkout_url,
+        payment_status: schema.payment_orders.status,
+        error_message: schema.payment_orders.error_message,
+
+        current_year: sql<number>`extract(year from now())`,
+      })
+      .from(schema.orders)
+      .innerJoin(
+        schema.order_item,
+        eq(schema.order_item.order_id, schema.orders.id),
+      )
+      .innerJoin(
+        schema.payment_orders,
+        eq(schema.payment_orders.order_id, schema.orders.id),
+      )
+      .innerJoin(schema.events, eq(schema.events.id, schema.orders.event_id))
+      .innerJoin(schema.users, eq(schema.users.id, schema.orders.user_id))
+      .where(eq(schema.orders.id, order_id))
+      .groupBy(
+        schema.users.first_name,
+        schema.orders.id,
+        schema.orders.total_price,
+        schema.events.name,
+        schema.events.starts_at,
+        schema.events.address_street,
+        schema.events.address_number,
+        schema.events.address_district,
+        schema.events.address_city,
+        schema.payment_orders.receipt_url,
+        schema.payment_orders.checkout_url,
+        schema.payment_orders.status,
+        schema.payment_orders.error_message,
+      );
+
+    return result[0] ?? null;
   }
 }

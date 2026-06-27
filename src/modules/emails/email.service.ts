@@ -4,6 +4,9 @@ import { SMTPService } from '@/infra/smtp/smtp.service.interface';
 import { EmailTemplateType } from './enums/email-template-type.enum';
 import { SendEmailMessageDto } from './dtos/send-email-message.dto';
 import { TicketsService } from '../tickets/tickets.service';
+import { EmailTemplatesRepository } from './email-templates.repository';
+import { EmailTemplateRendererProvider } from './providers/email-template-renderer.provider';
+import { OrdersService } from '../orders/orders.service';
 
 @Injectable()
 export class EmailsService {
@@ -12,6 +15,9 @@ export class EmailsService {
   constructor(
     private readonly smtpService: SMTPService,
     private readonly ticketsService: TicketsService,
+    private readonly emailTemplatesRepository: EmailTemplatesRepository,
+    private readonly emailTemplateRendererProvider: EmailTemplateRendererProvider,
+    private readonly ordersService: OrdersService,
   ) {}
 
   async sendTransactionalEmail(payload: SendEmailMessageDto): Promise<void> {
@@ -29,10 +35,23 @@ export class EmailsService {
 
   async sendPaymentFailedEmail(payload: SendEmailMessageDto): Promise<void> {
     try {
+      const emailTemplate = await this.emailTemplatesRepository.findByType(
+        payload.type,
+      );
+
+      const data = await this.ordersService.findOrderEmailTemplateDataById(
+        payload.order_id,
+      );
+
+      const html = this.emailTemplateRendererProvider.render(
+        emailTemplate.html,
+        data,
+      );
+
       await this.smtpService.sendEmail({
         to: payload.to,
         subject: `Payment for order #${payload.order_id} has failed!`,
-        html: '<div> <p>Payment for your order has failed.</p></div>',
+        html: html,
       });
 
       this.logger.log(
@@ -50,10 +69,23 @@ export class EmailsService {
 
   async sendPaymentSuccessEmail(payload: SendEmailMessageDto): Promise<void> {
     try {
+      const emailTemplate = await this.emailTemplatesRepository.findByType(
+        payload.type,
+      );
+
+      const data = await this.ordersService.findOrderEmailTemplateDataById(
+        payload.order_id,
+      );
+
+      const html = this.emailTemplateRendererProvider.render(
+        emailTemplate.html,
+        data,
+      );
+
       await this.smtpService.sendEmail({
         to: payload.to,
         subject: `Payment for order #${payload.order_id} is succesfull!`,
-        html: '<div> <p>Payment for your order is succesfull.</p></div>',
+        html: html,
       });
 
       this.logger.log(
@@ -71,13 +103,26 @@ export class EmailsService {
 
   async sendTicketsAvailableEmail(payload: SendEmailMessageDto): Promise<void> {
     try {
+      const emailTemplate = await this.emailTemplatesRepository.findByType(
+        payload.type,
+      );
+
+      const data = await this.ordersService.findOrderEmailTemplateDataById(
+        payload.order_id,
+      );
+
+      const html = this.emailTemplateRendererProvider.render(
+        emailTemplate.html,
+        data,
+      );
+
       const usersAndTickets =
         await this.ticketsService.findTicketAndUserByOrderId(payload.order_id);
 
       await this.smtpService.sendEmail({
         to: payload.to,
         subject: `Tickets for order #${payload.order_id}`,
-        html: '<div> <p>Your tickets for order has arrived</p></div>',
+        html: html,
         attachments: usersAndTickets.map((ticket) => ({
           filename: `${ticket.ticket_code}.pdf`,
           path: ticket.ticket_file_url,

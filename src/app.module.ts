@@ -11,6 +11,7 @@ import { MessagesModule } from './infra/messages/messages.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
 import { EmailsModule } from './modules/emails/emails.module';
 import { SMTPModule } from './infra/smtp/smtp.module';
+import { PaymentOrdersModule } from './modules/payment-orders/payment-orders.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { SMTPModule } from './infra/smtp/smtp.module';
     MessagesModule,
     EmailsModule,
     SMTPModule,
+    PaymentOrdersModule,
   ],
   providers: [
     {
