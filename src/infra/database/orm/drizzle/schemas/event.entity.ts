@@ -47,6 +47,7 @@ export const events = pgTable(
       mode: 'xy',
       srid: 4326,
     }).notNull(),
+    sales_starts_at: timestamp().notNull(),
     starts_at: timestamp().notNull(),
     ends_at: timestamp().notNull(),
     updated_at: timestamp().defaultNow(),
