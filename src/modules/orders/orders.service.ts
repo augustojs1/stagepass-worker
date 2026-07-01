@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 import { OrdersRepository } from './orders.repository';
+import { OrderEmailTemplateData } from '../emails/models';
+import { currencyFormatter, dateFormatter } from '@/utils';
 
 @Injectable()
 export class OrdersService {
@@ -8,7 +10,9 @@ export class OrdersService {
 
   constructor(private readonly ordersRepository: OrdersRepository) {}
 
-  async findOrderEmailTemplateDataById(order_id: string) {
+  async findOrderEmailTemplateDataById(
+    order_id: string,
+  ): Promise<OrderEmailTemplateData> {
     const data =
       await this.ordersRepository.findOrderEmailTemplateDataById(order_id);
 
@@ -18,6 +22,10 @@ export class OrdersService {
       );
     }
 
-    return data;
+    return {
+      ...data,
+      order_total: currencyFormatter(Number(data.order_total)),
+      event_date: dateFormatter(data.event_date),
+    };
   }
 }

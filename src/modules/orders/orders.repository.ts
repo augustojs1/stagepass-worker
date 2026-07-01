@@ -179,7 +179,6 @@ export class OrdersRepository {
         checkout_url: schema.payment_orders.checkout_url,
         payment_status: schema.payment_orders.status,
         error_message: schema.payment_orders.error_message,
-
         current_year: sql<number>`extract(year from now())`,
       })
       .from(schema.orders)

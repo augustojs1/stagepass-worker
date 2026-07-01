@@ -4,7 +4,7 @@ export class OrderEmailTemplateData {
   tickets_count: number;
   order_total: string | number;
   event_name: string;
-  event_date: Date;
+  event_date: Date | string;
   event_location: string;
   receipt_url: string | null;
   checkout_url: string | null;

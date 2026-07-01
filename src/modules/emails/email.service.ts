@@ -84,7 +84,7 @@ export class EmailsService {
 
       await this.smtpService.sendEmail({
         to: payload.to,
-        subject: `Payment for order #${payload.order_id} is succesfull!`,
+        subject: `Payment for order #${payload.order_id} was successful!`,
         html: html,
       });
 
